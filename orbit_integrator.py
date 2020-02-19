@@ -8,6 +8,7 @@ These represent a planet orbiting around its parent star. This is done by using 
 """
 
 import scipy as sci
+import scipy.linalg
 import astropy.constants as const
 
 def v(r):
@@ -16,17 +17,22 @@ def v(r):
 
     return vel
 
-def f(r):
+def a(xn):
 
-    r=sci.linalg.norm(r2-r1) #Calculate magnitude or norm of vector
+    r = xn-r1
+    print('r=',r)
+    r_norm = sci.linalg.norm(xn-r1) #Calculate magnitude or norm of vector
+    print('r_norm=',r_norm)
 
-    force = -1 * ((const.G.value * m1 * m2) / sci.mod(r)**3) * r
+    accel = -1 * ((const.G.value * m1) / r**3) * r_norm
+    print(accel)
 
-    return force
+    return accel
+
 
 def vn_next_half(vn, xn, dt):
 
-    next_half_vn = vn + f(xn) * dt/2.0
+    next_half_vn = vn + a(xn) * dt/2.0
 
     return next_half_vn
 
@@ -38,7 +44,7 @@ def xn_next(xn, next_half_vn, dt):
 
 def vn_next(next_half_vn, next_xn, dt):
 
-    next_vn = next_half_vn + f(next_xn) * dt/2.0
+    next_vn = next_half_vn + a(next_xn) * dt/2.0
 
     return next_vn
 
@@ -53,7 +59,7 @@ def vn_next(next_half_vn, next_xn, dt):
 #     mass = planet_mass
 #     pos = (x_pos, y_pos, z_pos)
 
-iterations = 1000
+iterations = 10
 
 sol_mass = const.M_sun.value
 kpc = const.kpc.value
@@ -62,14 +68,11 @@ G = 43007.105731706317
 orbit_rad = 8.0 # kpc
 apo = 8.0 # kpc
 peri = 1.0 # kpc
-dt = 1E-3 # ~ E-3 Gyr
+dt = 1 # Gyr
 
 coords = sci.matrix(3)
 
-print(planet_mass)
-print(orbit_rad)
-
-# Masses of 
+# Masses
 m1 = 9.0 # central mass in E10 solar masses
 m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
@@ -84,5 +87,21 @@ v2 = sci.array([0.0,10.0,0.0])
 
 v_com = (m1*v1+m2*v2)/(m1+m2)
 
-for i in range(iterations):
+with open('orbit_data', 'w') as orbit_file:
 
+    orbit_file.write('# r1 v1 r2 v2\n')
+
+    data = scipy.concatenate((r1,v1,r2,v2))
+    orbit_file.write(str(data)+'\n')
+
+    for i in range(iterations):
+
+        #for index, dimension in enumerate(v2):
+        half_vn = vn_next_half(v2, r2, dt)
+        next_xn = xn_next(r2, half_vn, dt)
+        r2 = next_xn
+        v2 = vn_next(half_vn, next_xn, dt)
+            
+        #sci.savetxt(orbit_file, (r1,v1,r2,v2))
+        print(str(sci.concatenate(r1,v1,r2,v2)))
+        
