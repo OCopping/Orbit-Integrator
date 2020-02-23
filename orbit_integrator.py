@@ -13,7 +13,7 @@ import astropy.constants as const
 import pprint
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
-import matplotlib.animation as animation
+#import matplotlib.animation as animation
 
 def v_circ(r):
 
@@ -58,7 +58,7 @@ def vn_next(vn, xn, dt):
     return next_vn
 
 
-iterations = 1000
+iterations = 200
 
 sol_mass = const.M_sun.value
 kpc = const.kpc.value
@@ -154,7 +154,7 @@ ax.set_title('3D Test')
 #line_ani = animation.FuncAnimation(fig, update_lines, 25, fargs=(data, lines),
 #                                   interval=50, blit=False)
 
-#p3.scatter([0],[0],[0],color='r',s=100)
+ax.scatter3D([0],[0],[0],color='r',s=1)
 plt.plot(data[:,0], data[:,1], data[:,2])
 
 plt.show()
