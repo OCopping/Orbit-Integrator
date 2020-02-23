@@ -15,12 +15,14 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 #import matplotlib.animation as animation
 
+# Function to define the equation of circulae velocity
 def v_circ(r):
 
     vel = sci.sqrt(G*m1/orbit_rad)
 
     return vel
 
+# Function to define the equation of elliptical velocity
 def v_elip(r):
 
     vel = sci.sqrt(G*m1*(2.0/r * 1/a))
@@ -33,6 +35,8 @@ def semi_maj(r, e):
 
     return semi_maj_axis
 
+# Function to define the equation of relative motion, which calculates the 
+# acceleration of the orbiting body
 def accel(xn):
 
     r = xn-r1
@@ -51,12 +55,22 @@ def xn_next(xn, next_half_vn, dt):
 
     return next_xn
 
-def vn_next(vn, xn, dt):
+def vn_next(vn, accel, dt):
 
-    next_vn = vn + accel(xn) * dt/2.0
+    next_vn = vn + accel * dt/2.0
 
     return next_vn
 
+def calc_time_step(central_pos,obj_pos,accel):
+
+    eta = 0.08
+
+    dt = eta * sci.sqrt(abs(sci.linalg.norm(obj_pos)- \
+        sci.linalg.norm(central_pos))/sci.linalg.norm(accel))
+
+    print(dt)
+
+    return dt
 
 iterations = 200
 
@@ -67,12 +81,10 @@ G = 43007.105731706317
 orbit_rad = 8.0 # kpc
 apo = 8.0 # kpc
 peri = 1.0 # kpc
-e = 0.12
+e = 0.125
 
 a = semi_maj(peri,e)
 print(a)
-
-coords = sci.matrix(3)
 
 # Masses
 m1 = 9.0 # central mass in E10 solar masses
@@ -115,13 +127,20 @@ with open('orbit_data.dat', 'w') as orbit_file:
 
     for i in range(iterations):
 
+        accel1 = accel(r2)
+        dt1 = calc_time_step(r1,r2,accel1)
+
         #for index, dimension in enumerate(v2):
-        half_vn = vn_next(v2, r2, dt)
-        next_xn = xn_next(r2, half_vn, dt)
+        half_vn = vn_next(v2, accel1, dt1)
+        next_xn = xn_next(r2, half_vn, dt1)
         r2 = next_xn
-        v2 = vn_next(half_vn, next_xn, dt)
+
+        accel2 = accel(next_xn)
+        dt2 = calc_time_step(r1,r2,accel2)
+
+        v2 = vn_next(half_vn, accel2, dt2)
             
-        t_current += dt
+        t_current += dt2
 
         orbit_file.write('{0} {1} {2}\n'.format(r2[0,0], r2[1,0], r2[2,0]))
 
