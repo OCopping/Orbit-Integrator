@@ -39,12 +39,12 @@ def semi_maj(r, e):
 # acceleration of the orbiting body
 def accel(xn):
 
+    print('r1',r1)
+
     r = xn-r1
     r_mag = sci.linalg.norm(r) #Calculate magnitude or norm of vector
-    #print('r_mag =', r_mag)
 
     accel = -1 * ((G * m1) / r_mag**3) * r
-    #print('a=',accel)
 
     return accel
 
@@ -74,7 +74,7 @@ def calc_time_step(central_pos,obj_pos,accel):
 
 
 
-iterations = 20000
+#iterations = 20000
 
 sol_mass = const.M_sun.value
 kpc = const.kpc.value
@@ -83,7 +83,7 @@ G = 43007.105731706317
 orbit_rad = 8.0 # kpc
 apo = 8.0 # kpc
 peri = 1.0 # kpc
-e = 0.125
+e = 0.1
 
 a = semi_maj(peri,e)
 print(a)
@@ -93,25 +93,20 @@ m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 1000
+t_max = 1500
 t_current = 0.0
 dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
 
-
 # Starting positions
 r1 = sci.array([a*e,0.0,0.0], dtype='float64')
-#r1.shape = (3,1)
 r2 = sci.array([peri+a*e,0.0,0.0], dtype='float64')
-#r2.shape = (3,1)
 
 #points = sci.repeat(r2[:,0],10)
 points = sci.array([r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2]) #15 points
-#pprint(points)
-
-
-#pprint.pprint(r1)
 
 # Initial velocities
+print(v_elip(peri))
+print(v_elip(apo))
 v1 = sci.array([0.0,0.0,0.0], dtype='float64')
 v2 = sci.array([0.0,v_elip(peri),0.0], dtype='float64')
 
@@ -155,13 +150,9 @@ def animate_orbit(t):
     #for index, dimension in enumerate(v2):
     half_vn = vn_next(v2, accel1, dt1)
     next_xn = xn_next(r2, half_vn, dt1)
-    #print(r2)
     r2 = next_xn
 
-    # print('r2')
     pprint(r2)
-    # print('points')
-    # pprint(points[0:-1])
     points = sci.concatenate(([r2],points[0:-1]), axis=0)
     
     accel2 = accel(next_xn)
@@ -170,23 +161,18 @@ def animate_orbit(t):
     v2 = vn_next(half_vn, accel2, dt2)
         
     t_current += dt2
-    #print(t_current)
-
-    # line.set_data(r2[0], r2[1])
-    # line.set_3d_properties(r2[2])
 
     line.set_data(points[:,0], points[:,1])
     line.set_3d_properties(points[:,2])
 
     return line,
 
-ax.scatter3D([0],[0],[0],color='r',s=5)
+ax.scatter3D(r1[0],r1[1],r1[2],color='r',s=10)
 #plt.plot(data[:,0], data[:,1], data[:,2])
 
 # Creating the Animation object
 line_ani = animation.FuncAnimation(fig, animate_orbit, frames=int(t_max), 
                                    init_func=init, interval=5, blit=False)
-
 
 plt.show()
 
