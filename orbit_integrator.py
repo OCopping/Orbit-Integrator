@@ -10,7 +10,7 @@ These represent a planet orbiting around its parent star. This is done by using 
 import scipy as sci
 import scipy.linalg
 import astropy.constants as const
-import pprint
+from pprint import pprint
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 from matplotlib import animation
@@ -63,16 +63,18 @@ def vn_next(vn, accel, dt):
 
 def calc_time_step(central_pos,obj_pos,accel):
 
-    eta = 0.08
+    eta = 0.02
 
     dt = eta * sci.sqrt(abs(sci.linalg.norm(obj_pos)- \
         sci.linalg.norm(central_pos))/sci.linalg.norm(accel))
 
-    print(dt)
+    #print(dt)
 
     return dt
 
-iterations = 200
+
+
+iterations = 20000
 
 sol_mass = const.M_sun.value
 kpc = const.kpc.value
@@ -91,86 +93,34 @@ m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 1
+t_max = 1000
 t_current = 0.0
 dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
 
 
 # Starting positions
-r1 = sci.matrix([a*e,0.0,0.0], dtype='float64')
-r1.shape = (3,1)
-r2 = sci.matrix([peri+a*e,0.0,0.0], dtype='float64')
-r2.shape = (3,1)
+r1 = sci.array([a*e,0.0,0.0], dtype='float64')
+#r1.shape = (3,1)
+r2 = sci.array([peri+a*e,0.0,0.0], dtype='float64')
+#r2.shape = (3,1)
+
+#points = sci.repeat(r2[:,0],10)
+points = sci.array([r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2]) #15 points
+#pprint(points)
+
 
 #pprint.pprint(r1)
 
 # Initial velocities
-# v1 = sci.array([0.0,0.0,0.0])
-# v2 = sci.array([0.0,10.0,0.0])
-
-#v1 = sci.asmatrix(v1, dtype='float64')
-#v2 = sci.asmatrix(v2, dtype='float64')
-
-v1 = sci.matrix([0.0,0.0,-0.2], dtype='float64')
-v1.shape = (3,1)
-v2 = sci.matrix([0.0,v_elip(peri),0.0], dtype='float64')
-v2.shape = (3,1)
-
-#print(v(8.0))
+v1 = sci.array([0.0,0.0,0.0], dtype='float64')
+v2 = sci.array([0.0,v_elip(peri),0.0], dtype='float64')
 
 #v_com = (m1*v1+m2*v2)/(m1+m2)
-
-with open('orbit_data.dat', 'w') as orbit_file:
-
-    orbit_file.write('# t    x    y    z\n')
-    orbit_file.write('{0} {1} {2}\n'.format(r2[0,0], r2[1,0], r2[2,0]))
-
-    for i in range(iterations):
-
-        accel1 = accel(r2)
-        dt1 = calc_time_step(r1,r2,accel1)
-
-        #for index, dimension in enumerate(v2):
-        half_vn = vn_next(v2, accel1, dt1)
-        next_xn = xn_next(r2, half_vn, dt1)
-        r2 = next_xn
-
-        accel2 = accel(next_xn)
-        dt2 = calc_time_step(r1,r2,accel2)
-
-        v2 = vn_next(half_vn, accel2, dt2)
-            
-        t_current += dt2
-
-        orbit_file.write('{0} {1} {2}\n'.format(r2[0,0], r2[1,0], r2[2,0]))
-
-data = sci.genfromtxt('orbit_data.dat')
 
 # Attaching 3D axis to the figure
 fig = plt.figure()
 ax = p3.Axes3D(fig)
-
-# Fifty lines of random 3-D lines
-#data = [Gen_RandLine(25, 3) for index in range(50)]
-
-pprint.pprint(data[:,0])
-
-# Creating fifty line objects.
-# NOTE: Can't pass empty arrays into 3d version of plot()
-lines = [ax.plot(dat[:,0], dat[:,1], dat[:,2])[0] for dat in data]
-
-
-## ANIMATED ORBITAL TRAJECTORY 
-
-def update_lines(num, dataLines, lines):
-
-    for line, data in zip(lines, dataLines):
-        
-        line.set_data(data[0:2,:num])
-        line.set_3d_properties(data[2,:num])
-
-    return lines
-
+line, = ax.plot([], [], [])
 
 # Setting the axes properties
 ax.set_xlim3d([-10.0, 10.0])
@@ -182,15 +132,62 @@ ax.set_ylabel('Y')
 ax.set_zlim3d([-10.0, 10.0])
 ax.set_zlabel('Z')
 
-ax.set_title('3D Test')
+ax.set_title('Orbital integrator test')
+
+
+def init():
+    line.set_data([], [])
+    line.set_3d_properties([])
+    return line,
+
+
+## ANIMATED ORBITAL TRAJECTORY 
+def animate_orbit(t):
+
+    global r1, r2, v2, t_current, points
+
+    if t_current > t:
+        exit()
+
+    accel1 = accel(r2)
+    dt1 = calc_time_step(r1,r2,accel1)
+
+    #for index, dimension in enumerate(v2):
+    half_vn = vn_next(v2, accel1, dt1)
+    next_xn = xn_next(r2, half_vn, dt1)
+    #print(r2)
+    r2 = next_xn
+
+    # print('r2')
+    pprint(r2)
+    # print('points')
+    # pprint(points[0:-1])
+    points = sci.concatenate(([r2],points[0:-1]), axis=0)
+    
+    accel2 = accel(next_xn)
+    dt2 = calc_time_step(r1,r2,accel2)
+
+    v2 = vn_next(half_vn, accel2, dt2)
+        
+    t_current += dt2
+    #print(t_current)
+
+    # line.set_data(r2[0], r2[1])
+    # line.set_3d_properties(r2[2])
+
+    line.set_data(points[:,0], points[:,1])
+    line.set_3d_properties(points[:,2])
+
+    return line,
+
+ax.scatter3D([0],[0],[0],color='r',s=5)
+#plt.plot(data[:,0], data[:,1], data[:,2])
 
 # Creating the Animation object
-line_ani = animation.FuncAnimation(fig, update_lines, int(iterations/2), fargs=(data, lines),
-                                   interval=50, blit=False)
+line_ani = animation.FuncAnimation(fig, animate_orbit, frames=int(t_max), 
+                                   init_func=init, interval=5, blit=False)
 
-ax.scatter3D([0],[0],[0],color='r',s=1)
-# plt.plot(data[:,0], data[:,1], data[:,2])
 
 plt.show()
 
-plt.savefig('3dtest.png')
+#plt.savefig('3dtest.png')
