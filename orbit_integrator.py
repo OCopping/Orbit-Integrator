@@ -13,7 +13,7 @@ import astropy.constants as const
 import pprint
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
-#import matplotlib.animation as animation
+from matplotlib import animation
 
 # Function to define the equation of circulae velocity
 def v_circ(r):
@@ -153,9 +153,24 @@ ax = p3.Axes3D(fig)
 # Fifty lines of random 3-D lines
 #data = [Gen_RandLine(25, 3) for index in range(50)]
 
+pprint.pprint(data[:,0])
+
 # Creating fifty line objects.
 # NOTE: Can't pass empty arrays into 3d version of plot()
-#lines = [ax.plot(dat[0, 0:1], dat[1, 0:1], dat[2, 0:1])[0] for dat in data]
+lines = [ax.plot(dat[:,0], dat[:,1], dat[:,2])[0] for dat in data]
+
+
+## ANIMATED ORBITAL TRAJECTORY 
+
+def update_lines(num, dataLines, lines):
+
+    for line, data in zip(lines, dataLines):
+        
+        line.set_data(data[0:2,:num])
+        line.set_3d_properties(data[2,:num])
+
+    return lines
+
 
 # Setting the axes properties
 ax.set_xlim3d([-10.0, 10.0])
@@ -170,11 +185,11 @@ ax.set_zlabel('Z')
 ax.set_title('3D Test')
 
 # Creating the Animation object
-#line_ani = animation.FuncAnimation(fig, update_lines, 25, fargs=(data, lines),
-#                                   interval=50, blit=False)
+line_ani = animation.FuncAnimation(fig, update_lines, int(iterations/2), fargs=(data, lines),
+                                   interval=50, blit=False)
 
 ax.scatter3D([0],[0],[0],color='r',s=1)
-plt.plot(data[:,0], data[:,1], data[:,2])
+# plt.plot(data[:,0], data[:,1], data[:,2])
 
 plt.show()
 
