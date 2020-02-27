@@ -39,7 +39,7 @@ def semi_maj(r, e):
 # acceleration of the orbiting body
 def accel(xn):
 
-    print('r1',r1)
+    #print('r1',r1)
 
     r = xn-r1
     r_mag = sci.linalg.norm(r) #Calculate magnitude or norm of vector
@@ -72,6 +72,11 @@ def calc_time_step(central_pos,obj_pos,accel):
 
     return dt
 
+def calc_energy(v, m, r):
+
+    E = 0.5*sci.power(v, 2) - (G*m)/r
+
+    return E
 
 
 #iterations = 20000
@@ -93,9 +98,12 @@ m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 1500
+t_max = 1000
 t_current = 0.0
 dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
+
+energies = []
+times = []
 
 # Starting positions
 r1 = sci.array([a*e,0.0,0.0], dtype='float64')
@@ -140,8 +148,14 @@ def init():
 def animate_orbit(t):
 
     global r1, r2, v2, t_current, points
+    global energies, times
 
     if t_current > t:
+
+        print('Energies\n', energies)
+        print('Times\n',times)
+        sci.savetxt('energies.dat', sci.transpose([energies, times]), delimiter=' ')
+
         exit()
 
     accel1 = accel(r2)
@@ -152,15 +166,20 @@ def animate_orbit(t):
     next_xn = xn_next(r2, half_vn, dt1)
     r2 = next_xn
 
-    pprint(r2)
+    #pprint(r2)
     points = sci.concatenate(([r2],points[0:-1]), axis=0)
     
     accel2 = accel(next_xn)
     dt2 = calc_time_step(r1,r2,accel2)
 
     v2 = vn_next(half_vn, accel2, dt2)
+
+    v = sci.linalg.norm(v2)
+    r = sci.linalg.norm(r2)
+    energies.append(calc_energy(v, m1, r))
         
     t_current += dt2
+    times.append(t_current)
 
     line.set_data(points[:,0], points[:,1])
     line.set_3d_properties(points[:,2])
@@ -176,4 +195,9 @@ line_ani = animation.FuncAnimation(fig, animate_orbit, frames=int(t_max),
 
 plt.show()
 
+# Set up formatting for the movie files
+#Writer = animation.writers['ffmpeg']
+#writer = Writer(fps=30, metadata=dict(artist='Me'), bitrate=1800)
+
+#line_ani.save('orbit_test.mp4', writer=writer)
 #plt.savefig('3dtest.png')
