@@ -63,7 +63,7 @@ def vn_next(vn, accel, dt):
 
 def calc_time_step(central_pos,obj_pos,accel):
 
-    eta = 0.02
+    eta = 0.08
 
     dt = eta * sci.sqrt(abs(sci.linalg.norm(obj_pos)- \
         sci.linalg.norm(central_pos))/sci.linalg.norm(accel))
@@ -98,16 +98,16 @@ m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 1000
+t_max = 4000
 t_current = 0.0
-dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
+const_dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
 
 energies = []
 times = []
 
 # Starting positions
-r1 = sci.array([a*e,0.0,0.0], dtype='float64')
-r2 = sci.array([peri+a*e,0.0,0.0], dtype='float64')
+r1 = sci.array([0.0,0.0,0.0], dtype='float64')
+r2 = sci.array([peri,0.0,0.0], dtype='float64')
 
 #points = sci.repeat(r2[:,0],10)
 points = sci.array([r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2]) #15 points
@@ -152,8 +152,8 @@ def animate_orbit(t):
 
     if t_current > t:
 
-        print('Energies\n', energies)
-        print('Times\n',times)
+        #print('Energies\n', energies)
+        #print('Times\n',times)
         sci.savetxt('energies.dat', sci.transpose([energies, times]), delimiter=' ')
 
         exit()
@@ -170,15 +170,15 @@ def animate_orbit(t):
     points = sci.concatenate(([r2],points[0:-1]), axis=0)
     
     accel2 = accel(next_xn)
-    dt2 = calc_time_step(r1,r2,accel2)
+    #dt2 = calc_time_step(r1,r2,accel2)
 
-    v2 = vn_next(half_vn, accel2, dt2)
+    v2 = vn_next(half_vn, accel2, dt1)
 
     v = sci.linalg.norm(v2)
     r = sci.linalg.norm(r2)
     energies.append(calc_energy(v, m1, r))
         
-    t_current += dt2
+    t_current += dt1
     times.append(t_current)
 
     line.set_data(points[:,0], points[:,1])
