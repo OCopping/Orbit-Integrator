@@ -48,6 +48,29 @@ def accel(xn):
 
     return accel
 
+def NFW_pot_accel(xn):
+
+    M_nfw = 80.0 # *E10 sol masses
+    rs = 16.0 # kpc
+    c = 15.3
+
+    r = xn-r1
+    r_mag = sci.linalg.norm(r) #Calculate magnitude or norm of vector
+
+    # accel = -1* r * ((G*M_nfw)/(sci.log(1.0+c) - c/(1.0+c))) * \
+    #     (2.0*sci.log(r_mag/rs + 1.0))/r_mag**3.0 - \
+    #     2.0/(r_mag**2.0 *rs*(r_mag/rs + 1.0)) - \
+    #     1.0/(r_mag*rs**2.0 *(r_mag/rs + 1.0)**2.0)
+
+    # accel = -1*r*((G*M_nfw)/(sci.log(1.0+c) - c/(1.0+c))) * \
+    #     ((r_mag - 2*(r_mag+rs)*sci.log((r_mag+rs)/rs)) \
+    #     / (r_mag**3 * (r_mag+rs)))
+
+    accel = -1*r* (( c+1)*G*M_nfw*( (r_mag+rs)*sci.log((r_mag+rs)/rs)-r_mag ))\
+        / ( r_mag**2*((c+1)*sci.log(c+1)-c) * (r_mag+rs) )
+
+    return accel
+
 
 def xn_next(xn, next_half_vn, dt):
 
@@ -98,7 +121,7 @@ m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 4000
+t_max = 1000
 t_current = 0.0
 const_dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
 
@@ -110,7 +133,7 @@ r1 = sci.array([0.0,0.0,0.0], dtype='float64')
 r2 = sci.array([peri,0.0,0.0], dtype='float64')
 
 #points = sci.repeat(r2[:,0],10)
-points = sci.array([r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2]) #15 points
+points = sci.array([r2,r2,r2,r2,r2])#,r2,r2,r2,r2,r2,r2,r2,r2,r2,r2]) #15 points
 
 # Initial velocities
 print(v_elip(peri))
@@ -159,7 +182,9 @@ def animate_orbit(t):
         exit()
 
     accel1 = accel(r2)
+    #accel1 = NFW_pot_accel(r2)
     dt1 = calc_time_step(r1,r2,accel1)
+    #dt1 = const_dt
 
     #for index, dimension in enumerate(v2):
     half_vn = vn_next(v2, accel1, dt1)
@@ -170,6 +195,7 @@ def animate_orbit(t):
     points = sci.concatenate(([r2],points[0:-1]), axis=0)
     
     accel2 = accel(next_xn)
+    #accel2 = NFW_pot_accel(next_xn)
     #dt2 = calc_time_step(r1,r2,accel2)
 
     v2 = vn_next(half_vn, accel2, dt1)
