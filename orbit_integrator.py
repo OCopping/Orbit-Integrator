@@ -127,6 +127,8 @@ const_dt = (2.0*sci.pi*orbit_rad)/v_elip(peri) * 0.01 # Gyr
 
 energies = []
 times = []
+radii = []
+velocities = []
 
 # Starting positions
 r1 = sci.array([0.0,0.0,0.0], dtype='float64')
@@ -177,7 +179,10 @@ def animate_orbit(t):
 
         #print('Energies\n', energies)
         #print('Times\n',times)
-        sci.savetxt('energies.dat', sci.transpose([energies, times]), delimiter=' ')
+        sci.savetxt('variables.dat', \
+            sci.transpose([times, energies, radii, velocities]), \
+            delimiter=' ', \
+            header='Time (Gyr) | Energy () | Radius (kpc) | Velocity (km/s)')
 
         exit()
 
@@ -201,7 +206,9 @@ def animate_orbit(t):
     v2 = vn_next(half_vn, accel2, dt1)
 
     v = sci.linalg.norm(v2)
+    velocities.append(v)
     r = sci.linalg.norm(r2)
+    radii.append(r)
     energies.append(calc_energy(v, m1, r))
         
     t_current += dt1
