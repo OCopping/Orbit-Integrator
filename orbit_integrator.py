@@ -73,7 +73,7 @@ def vn_next(vn, accel, dt):
 
 def calc_time_step(central_pos,obj_pos,accel):
 
-    eta = 0.08
+    #eta = 0.08
 
     dt = eta * sci.sqrt(abs(sci.linalg.norm(obj_pos)- \
         sci.linalg.norm(central_pos))/sci.linalg.norm(accel))
@@ -86,15 +86,13 @@ def calc_energy(v, m, r):
 
     return E
 
-def calc_nfw_energy(v, m, xn):
+def calc_nfw_energy(r):
 
     M_nfw = 80.0 # *E10 sol masses
     rs = 16.0 # kpc
     c = 15.3
 
-    r = xn-r1
-    r_mag = sci.linalg.norm(r) #Calculate magnitude or norm of vector
-
+    r_mag = r
 
     E = -G*M_nfw/r_mag *(sci.log(1+r_mag/rs)/(sci.log(1+c)-c/(1+c)))
 
@@ -111,6 +109,9 @@ parser.add_argument('-p', '--pot_type', type=str, required=True, \
 parser.add_argument('-t', '--time_step', type=float, required=False, \
     help="Time step length, can be fixed (e.g. 0.0001) or dynamic (0.0)", \
     default=0.0001)
+parser.add_argument('-e', '--eta', type=float, required=False, \
+    help="Eta value which is the fractional value for a dynamic time step", \
+    default=0.05)
 args = parser.parse_args()
 
 # G vakue for simplified units
@@ -121,12 +122,14 @@ apo = 8.0 # kpc
 peri = 1.0 # kpc
 e = 0.1
 
+eta = args.eta
+
 # Masses
 m1 = 9.0 # central mass in E10 solar masses
 #m2 = 1.0 # object mass in E10 solar masses
 # ^ random value
 
-t_max = 10 # ~Gyrs
+t_max = 1 # ~Gyrs
 t_current = 0.0
 # const_dt = (2.0*sci.pi*orbit_rad)/v_circ(peri) * 0.01 # Gyr
 
@@ -139,9 +142,18 @@ points = sci.array([r2]*5)# 5 points on the line
 # Initial velocities
 # v1 = sci.array([0.0,0.0,0.0], dtype='float64')
 # v2 = sci.array([0.0,v_elip(peri),0.0], dtype='float64')
-v2 =  sci.array([0.0,71.0,0.0], dtype='float64')
-
+v2 =  sci.array([0.0,50.0,0.0], dtype='float64')
 #v_com = (m1*v1+m2*v2)/(m1+m2)
+
+v = sci.linalg.norm(v2)
+r = sci.linalg.norm(r2)
+start_pot_energy = calc_nfw_energy(r)
+print("start pot energy =", start_pot_energy)
+start_kin_energy = 0.5 * sci.power(v,2)
+print("start kin energy =", start_kin_energy)
+start_energy = start_pot_energy + start_kin_energy
+print("Start energy =", start_energy)
+energies = []
 
 # Attaching 3D axis to the figure
 fig = plt.figure()
@@ -173,10 +185,27 @@ def init():
 
 ## ANIMATED ORBITAL TRAJECTORY 
 def animate_orbit(t):
+    """Function used by matplotlib's animation object to calculate the next velocity and position steps using a KDK integration algorithm and creating a 3D line object to be rendered at each time step.
+    
+    :param t: The maximum value of time to integrate to
+    :type t: float
+    :return line: The line object to return to the animation object
+    :rtype line: Line2D object
+    """
 
-    global r1, r2, v2, t_current, points
+    global r1, r2, v2, t_current, points, eta
 
     if t_current > t_max:
+
+        energies2 = energies - start_energy
+        delta_e = max(energies2) - min(energies2)
+        print('delta_e =', delta_e)
+        print('eta =', eta)
+        etafile.write('{0} {1}\n'.format(eta,delta_e))
+
+        fileout.flush()
+        etafile.flush()
+
         exit()
 
 
@@ -206,12 +235,16 @@ def animate_orbit(t):
 
     v = sci.linalg.norm(v2)
     r = sci.linalg.norm(r2)
-    energy = calc_nfw_energy(v, m1, r)
+    pot_energy = calc_nfw_energy(r)
+    total_energy = pot_energy + 0.5 * sci.power(v,2)
+    energies.append(total_energy)
+    delta_e_tot = start_energy - total_energy
+    print(start_energy, total_energy)
         
     t_current += dt
 
     # Write values to file
-    fileout.write('{0} {1} {2} {3} {4} {5} {6}\n'.format(t_current,energy,r,v,r2[0],r2[1],r2[2]))
+    fileout.write('{0} {1} {2} {3} {4} {5} {6}\n'.format(t_current,delta_e_tot,r,v,r2[0],r2[1],r2[2]))
 
     line.set_data(points[:,0], points[:,1])
     line.set_3d_properties(points[:,2])
@@ -226,9 +259,10 @@ def animate_orbit(t):
 
 ax.scatter3D(r1[0],r1[1],r1[2],color='r',s=10)
 
-with open('variables.dat','w') as fileout:
+with open('variables.dat','w') as fileout, open('eta_data.dat','at') as etafile:
 
     fileout.write('# Time (Gyr) | Energy () | Radius (kpc) | Velocity (km/s) | x | y | z\n')
+    #etafile.write('# Eta | Delta E\n')
 
     # Creating the Animation object
     line_ani = animation.FuncAnimation(fig, animate_orbit, frames=int(t_max), 
